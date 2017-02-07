@@ -25,8 +25,51 @@ String command;
 
  // send data only when you receive data:
   if (Serial.available() > 0) {
-    
-    // read the incoming byte:
+    followCommand();
+  }
+  //setSteps();
+  Serial.println(getRevPerSec());
+ }
+ 
+ //set motor speed to _speed
+void setSpeed(int _speed){
+  Serial.println("setting speed to ");
+  Serial.print(_speed);
+  myservo.write(_speed);
+}
+
+long getRevPerSec(){
+   int milisec=1000;
+   int startPos= encoder0Pos;
+   unsigned long startTime=millis();
+   
+   while(millis()-startTime < milisec){
+      setSteps();
+   }
+   Serial.println("");
+   Serial.print("Initial pos: ");
+   Serial.println(startPos);
+   Serial.print("End pos: ");
+   Serial.println( encoder0Pos);
+   return (encoder0Pos- startPos)/ stepsPerRev;
+}
+
+void setSteps(){
+  n = digitalRead(encoder0PinA);
+   if ((encoder0PinALast == LOW) && (n == HIGH)) {
+     if (digitalRead(encoder0PinB) == LOW) {
+       encoder0Pos--;
+     } else {
+       encoder0Pos++;
+     }
+     //Serial.print (encoder0Pos);
+     //Serial.print ("/");
+   } 
+   encoder0PinALast = n;
+}
+
+void followCommand(){
+   // read the incoming byte:
     command = Serial.readString();
     Serial.println("I received: "+ command);  
     command.trim();
@@ -43,48 +86,5 @@ String command;
       Serial.println("This is a reverse command"); 
     }
     setSpeed(sp);
-  }
-  
-   n = digitalRead(encoder0PinA);
-   if ((encoder0PinALast == LOW) && (n == HIGH)) {
-     if (digitalRead(encoder0PinB) == LOW) {
-       encoder0Pos--;
-     } else {
-       encoder0Pos++;
-     }
-     //Serial.print (encoder0Pos);
-     //Serial.print ("/");
-     
-   } 
-   /*Serial.print("This is the speed: ");*/
-   Serial.println(getRevPerSec());
-   encoder0PinALast = n;
- } 
- 
- //set motor speed to _speed
-void setSpeed(int _speed){
-  Serial.println("setting speed to ");
-  Serial.print(_speed);
-  myservo.write(_speed);
-}
-
-long getRevPerSec(){
-   int milisec=1000;
-   int startPos= encoder0Pos;
-   unsigned long startTime=millis();
-   Serial.print("Start time: ");
-   Serial.println(startTime);
-   
-   while(millis()-startTime < milisec){
-      Serial.print("Time is running");
-   }
-   Serial.println("");
-   Serial.print("Initial pos: ");
-   Serial.println(startPos);
-   Serial.print("End pos: ");
-   Serial.println( encoder0Pos);
-   Serial.print("End time: ");
-   Serial.println(millis());
-   return (encoder0Pos- startPos)/ stepsPerRev;
 }
 
