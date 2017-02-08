@@ -1,22 +1,19 @@
 #include <Servo.h>
-
+//red is 5V
 Servo myservo;  // create servo object to control a servo
 
 String command;
 
  int sp = 0; //speed you want the motor to turn
- int encoder0PinA = 5;
- int encoder0PinB = 6;
- int encoder0Pos = 0;
- int encoder0PinALast = LOW;
- int n = LOW;
+ int encoder0PinA = 11;
+ int prevPulse = LOW;
  int motorPin = 9;
- int stepsPerRev= 1024;
+ int pulsePerRev= 50;
+ int pulses;
 
 
  void setup() { 
    pinMode (encoder0PinA,INPUT);
-   pinMode (encoder0PinB,INPUT);
    Serial.begin (9600);   // opens serial port, sets data rate to 9600 bps
    myservo.attach(motorPin);  // attaches the servo on pin 9 to the servo object
  } 
@@ -27,8 +24,22 @@ String command;
   if (Serial.available() > 0) {
     followCommand();
   }
-  //setSteps();
-  Serial.println(getRevPerSec());
+  countPulse();
+  
+  /*Serial.print("Pulse Per Sec: ");
+  Serial.println(getPulsePerSec());*/
+  //Serial.print("Pulse Per Min: ");
+  /*Serial.println(getPulsePerMin());
+  Serial.println("");*/
+  /*Serial.print("RPM: ");
+  Serial.println(getRPM());*/
+  Serial.print("Revolutions: ");
+  Serial.println(getRev());
+  delay(500);
+  
+  /*Serial.print("Pulse: ");
+  Serial.println(pulses);
+  Serial.print("");*/
  }
  
  //set motor speed to _speed
@@ -38,34 +49,43 @@ void setSpeed(int _speed){
   myservo.write(_speed);
 }
 
-long getRevPerSec(){
-   int milisec=1000;
-   int startPos= encoder0Pos;
-   unsigned long startTime=millis();
-   
-   while(millis()-startTime < milisec){
-      setSteps();
-   }
-   Serial.println("");
-   Serial.print("Initial pos: ");
-   Serial.println(startPos);
-   Serial.print("End pos: ");
-   Serial.println( encoder0Pos);
-   return (encoder0Pos- startPos)/ stepsPerRev;
+int getPulse(){
+  return digitalRead(encoder0PinA);
 }
 
-void setSteps(){
-  n = digitalRead(encoder0PinA);
-   if ((encoder0PinALast == LOW) && (n == HIGH)) {
-     if (digitalRead(encoder0PinB) == LOW) {
-       encoder0Pos--;
-     } else {
-       encoder0Pos++;
-     }
-     //Serial.print (encoder0Pos);
-     //Serial.print ("/");
-   } 
-   encoder0PinALast = n;
+void countPulse(){
+  int currentPulse = getPulse();
+  if (prevPulse == LOW && currentPulse == HIGH){
+    pulses++;
+  }
+  prevPulse= currentPulse;
+}
+
+int getPulsePerSec(){
+  unsigned long startTime = micros();
+  int startPulse = pulses;
+  while (micros() - startTime < 1000000){
+    countPulse();
+  }
+  return pulses - startPulse;
+}
+int getPulsePerMin(){
+  return getPulsePerSec() * 60;
+}
+
+int getRPM(){
+  unsigned long microsec=1000000;
+  int initPulse= pulses;
+  unsigned long startTime=micros();
+   
+   while(micros()-startTime < microsec){
+      countPulse();
+   }
+   return ((pulses- initPulse)* 60)/pulsePerRev;
+}
+
+int getRev(){
+  return pulses/ pulsePerRev;
 }
 
 void followCommand(){
@@ -86,5 +106,14 @@ void followCommand(){
       Serial.println("This is a reverse command"); 
     }
     setSpeed(sp);
+}
+
+unsigned long getRevPeriod(){
+  int initialpulse = pulses;
+  unsigned long initialtime = micros();
+  while( pulses - initialpulse < pulsePerRev){
+    countPulse();
+  }
+  return micros() - initialtime;
 }
 
